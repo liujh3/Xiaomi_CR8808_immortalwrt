@@ -166,7 +166,16 @@ linksys_mx_pre_upgrade() {
 }
 
 platform_check_image() {
-	return 0;
+	local board=$(board_name)
+	case $board in
+		xiaomi,cr8808)
+			v "Sysupgrade is not supported on your board($board) yet."
+			return 1
+			;;
+		*)
+			return 0
+			;;
+	esac
 }
 
 platform_pre_upgrade() {
@@ -231,6 +240,10 @@ platform_do_upgrade() {
 		CI_ROOT_UBIPART="rootfs"
 		CI_DATA_UBIPART="rootfs"
 		nand_do_upgrade "$1"
+		;;
+	xiaomi,cr8808)
+		echo "ERROR: Forced upgrade is also blocked for $board."
+		exit 1
 		;;
 	yuncore,ax830|\
 	yuncore,ax850|\

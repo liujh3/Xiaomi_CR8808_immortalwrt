@@ -229,6 +229,21 @@ define Device/xiaomi_ax6000
 endef
 TARGET_DEVICES += xiaomi_ax6000
 
+define Device/xiaomi_cr8808-m79
+	$(call Device/FitImage)
+	$(call Device/UbiFit)
+	DEVICE_VENDOR := Xiaomi
+	DEVICE_MODEL := CR8808(M79)
+	BLOCKSIZE := 128k
+	PAGESIZE := 2048
+	DEVICE_DTS_CONFIG := config@mp02.1
+	SOC := ipq5000
+	DEVICE_PACKAGES := ath11k-firmware-ipq5018-qcn6122 \
+		kmod-ath11k-pci \
+		ipq-wifi-xiaomi_cr8808-m79
+endef
+TARGET_DEVICES += xiaomi_cr8808-m79
+
 define Device/xiaomi_redmi-ax5400
 	$(call Device/xiaomi_ipq50xx_ax_base)
 	DEVICE_MODEL := Redmi AX5400
