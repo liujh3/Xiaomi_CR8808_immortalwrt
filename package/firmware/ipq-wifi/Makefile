@@ -106,7 +106,9 @@ ALLWIFIBOARDS:= \
 	xiaomi_ax3600 \
 	xiaomi_ax6000 \
 	xiaomi_ax9000 \
+	xiaomi_cr8808-m79 \
 	xiaomi_redmi-ax5400 \
+	yyets_le1 \
 	yuncore_ax830 \
 	yuncore_ax850 \
 	yuncore_ax880 \
@@ -206,6 +208,11 @@ Do not install it for any other device!
   PREV_BOARD+=ipq-wifi-$(1)
 endef
 
+define Build/Prepare
+	$(call Build/Prepare/Default)
+	$(CP) ./files/board-* $(PKG_BUILD_DIR)/ 2>/dev/null || true
+endef
+
 # To add local files for testing:
 # 1. create a new directory in the ipq-wifi package directory called "files".
 # 2. place there the needed board files.
@@ -303,7 +310,9 @@ $(eval $(call generate-ipq-wifi-package,xiaomi_aiot-ac2350,Xiaomi AIoT AC2350))
 $(eval $(call generate-ipq-wifi-package,xiaomi_ax3600,Xiaomi AX3600))
 $(eval $(call generate-ipq-wifi-package,xiaomi_ax6000,Xiaomi AX6000))
 $(eval $(call generate-ipq-wifi-package,xiaomi_ax9000,Xiaomi AX9000))
+$(eval $(call generate-ipq-wifi-package,xiaomi_cr8808-m79,Xiaomi CR8808 M79))
 $(eval $(call generate-ipq-wifi-package,xiaomi_redmi-ax5400,Xiaomi Redmi AX5400))
+$(eval $(call generate-ipq-wifi-package,yyets_le1,YYeTs LE1))
 $(eval $(call generate-ipq-wifi-package,yuncore_ax830,Yuncore AX830))
 $(eval $(call generate-ipq-wifi-package,yuncore_ax850,Yuncore AX850))
 $(eval $(call generate-ipq-wifi-package,yuncore_ax880,Yuncore AX880))
