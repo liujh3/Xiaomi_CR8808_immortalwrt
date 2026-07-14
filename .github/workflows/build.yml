@@ -8,9 +8,16 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Free disk space
-        run: |
-          sudo rm -rf /usr/share/dotnet /usr/local/lib/android
+      - name: Free Disk Space
+        uses: jlumbroso/free-disk-space@main
+        with:
+          tool-cache: true
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: true
+          docker-images: true
+          swap-storage: true
 
       - name: Install dependencies
         run: |
@@ -27,6 +34,22 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
+      - name: Cache dl Directory
+        uses: actions/cache@v4
+        with:
+          path: dl
+          key: ${{ runner.os }}-openwrt-dl-${{ hashFiles('**/feeds.conf.default') }}
+          restore-keys: |
+            ${{ runner.os }}-openwrt-dl-
+
+      - name: Cache Ccache
+        uses: actions/cache@v4
+        with:
+          path: ~/.ccache
+          key: ${{ runner.os }}-openwrt-ccache-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-openwrt-ccache-
+
       - name: Hook the openwrt_core URL
         run: |
           BRANCH_NAME="${GITHUB_REF_NAME}"
@@ -39,7 +62,7 @@ jobs:
           cp .config original.config
           ./scripts/feeds update -a
           ./scripts/feeds install -a
-          cp original.config .config
+          [ -f original.config ] && cp original.config .config
           echo "CONFIG_ALL_KMODS=y" >> .config
           make defconfig
           echo "FILES=${{ github.workspace }}/files" >> $GITHUB_ENV
