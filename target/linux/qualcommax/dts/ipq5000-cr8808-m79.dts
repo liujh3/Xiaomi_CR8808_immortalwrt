@@ -13,7 +13,7 @@
 	compatible = "xiaomi,cr8808", "qcom,ipq5018";
 
 	aliases {
-		label-mac-device = <&dp1>;
+		label-mac-device = &dp1;
 		led-boot = &led_system_blue;
 		led-failsafe = &led_system_yellow;
 		led-running = &led_system_blue;
@@ -217,10 +217,14 @@
 					#address-cells = <1>;
 					#size-cells = <1>;
 
-					hw_mac_addr: mac-address@0 {
+					mac_addr: macaddr@0 {
 						compatible = "mac-base";
 						reg = <0x0 0x6>;
 						#nvmem-cell-cells = <1>;
+					};
+
+					mac_addr_dp1: macaddr@6 {
+						reg = <0x6 0x6>;
 					};
 				};
 			};
@@ -255,13 +259,28 @@
 	};
 };
 
+/*
+* =================================================================
+*     _______________________             _______________________
+*    |        IPQ5018        |           |        QCA8337        |
+*    | +------+   +--------+ |           | +--------+   +------+ |
+*    | | MAC0 |---| GE Phy |-+--- MDI ---+ | Phy4   |---| MAC5 | |
+*    | +------+   +--------+ |           | +--------+   +------+ |
+*    | +------+   +--------+ |           | +--------+   +------+ |
+*    | | MAC1 |---| Uniphy |-+-- SGMII---+ | SerDes |---| MAC6 | |
+*    | +------+   +--------+ |           | +--------+   +------+ |
+*    |_______________________|           |_______________________|
+*
+* =================================================================
+*/
+
 &switch {
 	status = "okay";
 
 	switch_mac_mode = <MAC_MODE_SGMII_CHANNEL0>;
 
 	qcom,port_phyinfo {
-		// MAC0 -> GE Phy --- MDI --- QCA8337 Switch
+		// MAC0 -> GE Phy --- MDI --- QCA8337 Phy4(Port5)
 		port@1 {
 			port_id = <1>;
 			mdiobus = <&mdio0>;
@@ -269,9 +288,10 @@
 			phy_dac = <0x10 0x10>;
 		};
 
-		// MAC1 ---SGMII---> QCA8337 SerDes
+		// MAC1 -> Uniphy --- SGMII --- QCA8337 SerDes(Port6)
 		port@2 {
 			port_id = <2>;
+			mdiobus = <&mdio1>;
 			forced-speed = <1000>;
 			forced-duplex = <1>;
 		};
@@ -280,27 +300,9 @@
 
 // MAC0 -> GE Phy
 &dp1 {
-	/*
-	 * ===============================================================
-	 *     _______________________         _______________________
-	 *    |        IPQ5018        |       |        QCA8337        |
-	 *    | +------+   +--------+ |       | +--------+   +------+ |
-	 *    | | MAC0 |---| GE Phy |-+--UTP--+-|  Phy4  |---| MAC5 | |
-	 *    | +------+   +--------+ |       | +--------+   +------+ |
-	 *    | +------+   +--------+ |       | +--------+   +------+ |
-	 *    | | MAC1 |---| Uniphy |-+-SGMII-+-| SerDes |---| MAC0 | |
-	 *    | +------+   +--------+ |       | +--------+   +------+ |
-	 *    |_______________________|       |_______________________|
-	 *
-	 * ===============================================================
-	 *
-	 * Current drivers don't support such topology. So dp1 and ge_phy
-	 * are useless. But they can't be disabled dut to qca-ssdk use
-	 * ge_phy to detect IPQ5018 dummy switch.
-	 */
 	status = "okay";
 
-	nvmem-cells = <&hw_mac_addr 0>;
+	nvmem-cells = <&mac_addr_dp1>;
 	nvmem-cell-names = "mac-address";
 };
 
@@ -308,7 +310,7 @@
 &dp2 {
 	status = "okay";
 
-	nvmem-cells = <&hw_mac_addr 1>;
+	nvmem-cells = <&mac_addr 0>;
 	nvmem-cell-names = "mac-address";
 
 	phy-mode = "sgmii";
@@ -322,7 +324,7 @@
 	status = "okay";
 };
 
-// IPQ5018 GE Phy -> QCA8337 PHY0
+// IPQ5018 GE Phy -> QCA8337 Phy4
 &ge_phy {
 	qcom,dac-preset-short-cable;
 };
@@ -334,44 +336,85 @@
 	pinctrl-names = "default";
 	reset-gpios = <&tlmm 26 GPIO_ACTIVE_LOW>;
 
-	// QCA8337 Phy0 -> LAN1
-	qca8337_0: ethernet-phy@0 {
+	// QCA8337 Phy0(Port 1) -> LAN1
+	qca8337_1: ethernet-phy@0 {
 		reg = <0>;
 	};
 
-	// QCA8337 Phy1 -> LAN2
-	qca8337_1: ethernet-phy@1 {
+	// QCA8337 Phy1(Port 2) -> LAN2
+	qca8337_2: ethernet-phy@1 {
 		reg = <1>;
 	};
 
-	// QCA8337 Phy2 -> LAN3
-	qca8337_2: ethernet-phy@2 {
+	// QCA8337 Phy2(Port 3) -> LAN3
+	qca8337_3: ethernet-phy@2 {
 		reg = <2>;
 	};
 
-	// QCA8337 Phy3 -> WAN
-	qca8337_3: ethernet-phy@3 {
+	// QCA8337 Phy3(Port 4) -> WAN
+	qca8337_4: ethernet-phy@3 {
 		reg = <3>;
 	};
 
-	// QCA8337 Phy4 -> IPQ5018 GE Phy
-	qca8337_4: ethernet-phy@4 {
+	// QCA8337 Phy4(Port 5) -> IPQ5018 GE Phy
+	qca8337_5: ethernet-phy@4 {
 		reg = <4>;
-		status = "disabled";
 	};
 
 	// QCA8337 switch
-	switch1: ethernet-switch@17 {
+	ethernet-switch@11 {
 		compatible = "qca,qca8337";
-		reg = <17>;
+		reg = <0x11>;
 
 		ports {
 			#address-cells = <1>;
 			#size-cells = <0>;
 
-			switch0cpu: port@0 {
-				reg = <0>;
-				label = "cpu";
+			port@1 {
+				reg = <1>;
+				label = "lan1";
+				phy-handle = <&qca8337_1>;
+
+				nvmem-cells = <&mac_addr 1>;
+				nvmem-cell-names = "mac-address";
+			};
+
+			port@2 {
+				reg = <2>;
+				label = "lan2";
+				phy-handle = <&qca8337_2>;
+
+				nvmem-cells = <&mac_addr 2>;
+				nvmem-cell-names = "mac-address";
+			};
+
+			port@3 {
+				reg = <3>;
+				label = "lan3";
+				phy-handle = <&qca8337_3>;
+
+				nvmem-cells = <&mac_addr 3>;
+				nvmem-cell-names = "mac-address";
+			};
+
+			port@4 {
+				reg = <4>;
+				label = "wan";
+				phy-handle = <&qca8337_4>;
+
+				nvmem-cells = <&mac_addr 4>;
+				nvmem-cell-names = "mac-address";
+			};
+
+			port@5 {
+				reg = <5>;
+				phy-handle = <&qca8337_5>;
+				phy-mode = "gmii";
+				ethernet = <&dp1>;
+			};
+
+			port@6 {
+				reg = <6>;
 				phy-mode = "sgmii";
 				ethernet = <&dp2>;
 				qca,sgmii-enable-pll;
@@ -380,37 +423,6 @@
 					speed = <1000>;
 					full-duplex;
 				};
-			};
-
-			port@1 {
-				reg = <1>;
-				label = "lan1";
-				phy-handle = <&qca8337_0>;
-			};
-
-			port@2 {
-				reg = <2>;
-				label = "lan2";
-				phy-handle = <&qca8337_1>;
-			};
-
-			port@3 {
-				reg = <3>;
-				label = "lan3";
-				phy-handle = <&qca8337_2>;
-			};
-
-			port@4 {
-				reg = <4>;
-				label = "wan";
-				phy-handle = <&qca8337_3>;
-			};
-
-			port@5 {
-				reg = <5>;
-				phy-handle = <&qca8337_4>;
-				label = "cpu2";
-				status = "disabled";
 			};
 		};
 	};
