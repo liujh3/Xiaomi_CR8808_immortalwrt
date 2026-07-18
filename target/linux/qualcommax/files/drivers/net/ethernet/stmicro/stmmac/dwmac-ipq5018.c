@@ -66,21 +66,34 @@ static void ipq5018_gmac_fix_speed(void *priv, unsigned int speed, unsigned int 
 static int ipq5018_gmac_pcs_init(struct stmmac_priv *priv)
 {
 	struct phylink_pcs *pcs;
+	phy_interface_t interface = priv->plat->phy_interface;
 	int ret;
 
 	pcs = fwnode_pcs_get(dev_fwnode(priv->device), 0);
-	if (!pcs)
-		return 0;
-	else if (IS_ERR(pcs)) {
+
+	if (IS_ERR(pcs)) {
 		ret = PTR_ERR(pcs);
 		if (ret == -ENOENT)
-			return 0;
-		dev_err(priv->device, "failed to parse PCS from fwnode\n");
+			goto no_pcs;
+
+		if (ret != -EPROBE_DEFER)
+			dev_err(priv->device, "failed to parse PCS from fwnode: %d\n", ret);
+
 		return ret;
 	}
 
-	priv->hw->phylink_pcs = pcs;
+	if (!pcs)
+		goto no_pcs;
 
+	priv->hw->phylink_pcs = pcs;
+	return 0;
+
+no_pcs:
+	if (interface == PHY_INTERFACE_MODE_SGMII ||
+	    interface == PHY_INTERFACE_MODE_2500BASEX) {
+		dev_err(priv->device, "Critical Error: phy-mode is SGMII/2500BaseX, but pcs-handle is missing!\n");
+		return -EINVAL;
+	}
 	return 0;
 }
 
@@ -109,8 +122,9 @@ static void ipq5018_gmac_get_interfaces(struct stmmac_priv *priv, void *bsp_priv
 	 * - GMAC0 supports SGMII and is wired to the SoC's internal GE PHY
 	 * - GMAC1 supports SGMII and 2500BaseX, configurable by the UNIPHY PCS
 	 */
-	__set_bit(PHY_INTERFACE_MODE_SGMII, interfaces);
+	__set_bit(PHY_INTERFACE_MODE_INTERNAL, interfaces);
 	if (priv->hw->phylink_pcs) {
+		__set_bit(PHY_INTERFACE_MODE_SGMII, interfaces);
 		__set_bit(PHY_INTERFACE_MODE_2500BASEX, interfaces);
 
 		/* 
