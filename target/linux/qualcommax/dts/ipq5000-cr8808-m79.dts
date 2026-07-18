@@ -13,7 +13,7 @@
 	compatible = "xiaomi,cr8808", "qcom,ipq5018";
 
 	aliases {
-		label-mac-device = &dp1;
+		label-mac-device = &gmac0;
 		led-boot = &led_system_blue;
 		led-failsafe = &led_system_yellow;
 		led-running = &led_system_blue;
@@ -223,7 +223,7 @@
 						#nvmem-cell-cells = <1>;
 					};
 
-					mac_addr_dp1: macaddr@6 {
+					mac_addr_gmac0: macaddr@6 {
 						reg = <0x6 0x6>;
 					};
 				};
@@ -274,46 +274,32 @@
 * =================================================================
 */
 
-&switch {
+&uniphy0 {
 	status = "okay";
 
-	switch_mac_mode = <MAC_MODE_SGMII_CHANNEL0>;
-
-	qcom,port_phyinfo {
-		// MAC0 -> GE Phy --- MDI --- QCA8337 Phy4(Port5)
-		port@1 {
-			port_id = <1>;
-			mdiobus = <&mdio0>;
-			phy_address = <7>;
-			phy_dac = <0x10 0x10>;
-		};
-
-		// MAC1 -> Uniphy --- SGMII --- QCA8337 SerDes(Port6)
-		port@2 {
-			port_id = <2>;
-			mdiobus = <&mdio1>;
-			forced-speed = <1000>;
-			forced-duplex = <1>;
-		};
-	};
+	assigned-clocks = <&uniphy0 UNIPHY_CLK_REF>;
+	assigned-clock-rates = <UNIPHY_REFCLK_25MHZ>;
 };
 
 // MAC0 -> GE Phy
-&dp1 {
+&gmac0 {
 	status = "okay";
 
-	nvmem-cells = <&mac_addr_dp1>;
+	phy-mode = "internal";
+
+	nvmem-cells = <&mac_addr_gmac0>;
 	nvmem-cell-names = "mac-address";
 };
 
 // MAC1 ---SGMII---> QCA8337 SerDes
-&dp2 {
+&gmac1 {
 	status = "okay";
+
+	phy-mode = "sgmii";
 
 	nvmem-cells = <&mac_addr 0>;
 	nvmem-cell-names = "mac-address";
 
-	phy-mode = "sgmii";
 	fixed-link {
 		speed = <1000>;
 		full-duplex;
@@ -410,13 +396,13 @@
 				reg = <5>;
 				phy-handle = <&qca8337_5>;
 				phy-mode = "gmii";
-				ethernet = <&dp1>;
+				ethernet = <&gmac0>;
 			};
 
 			port@6 {
 				reg = <6>;
 				phy-mode = "sgmii";
-				ethernet = <&dp2>;
+				ethernet = <&gmac1>;
 				qca,sgmii-enable-pll;
 
 				fixed-link {
